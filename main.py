@@ -144,11 +144,3 @@ new_data_pred = random_forest.predict_proba(new_data_tfidf)
 threshold = 0.3
 for i, v in enumerate(new_data_pred):
     print(f"PublicaçãO: {codigos2[i]}, Clusters: {list(filter(lambda c: new_data_pred[i][c] > threshold, [c for c in range(num_clusters)]))}, Predições: {new_data_pred[i]}")
-
-# new_data_prob = list(map(lambda x: 1 - x[0][0], new_data_pred))
-# print(new_data_pred)
-
-# threshold = 0.3
-
-# for index, value in enumerate(new_data_prob):
-#   print(f"Publicação: {publicacoes2[index]} {index}: {value*100:.2f}%")
