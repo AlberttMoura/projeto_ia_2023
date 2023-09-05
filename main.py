@@ -5,15 +5,15 @@ import re
 from unidecode import unidecode
 import numpy as np
 import os
-import tensorflow as tf
-from tensorflow.keras.preprocessing.text import Tokenizer
-from tensorflow.keras.preprocessing.sequence import pad_sequences
+from sklearn.feature_extraction.text import TfidfVectorizer
+from sklearn.ensemble import RandomForestClassifier
 
 conteudo = ""
 count = 0
 for do in os.listdir('./dos'):
-    if count == 1:
-        break
+    if count == 0:
+        count += 1
+        continue
     pdf_file = open(f"./dos/{do}", "rb")
 
     pdf_reader = PyPDF2.PdfReader(pdf_file)
@@ -22,7 +22,6 @@ for do in os.listdir('./dos'):
     print(f"lendo {do}")
     # Itera as páginas do PDF
     for page_num in range(len(pdf_reader.pages)):
-        if page_num >= 30: break
         print(f"Página: {page_num}")
 
         # Extrai a página da iteração
@@ -100,48 +99,7 @@ X_treino = publicacoes
 y_treino = labels
 labels = list(map(lambda x: [1 if x == i else 0 for i in [n for n in range(num_clusters)]], labels))
 
-# Tokeniza as entradas (transforma palavras em números)
-tokenizer = Tokenizer()
-tokenizer.fit_on_texts(publicacoes)
-sequences = tokenizer.texts_to_sequences(publicacoes)
-
-# Tamanho do vocabulário, incluindo token Out Of Vocabulary (OOV)
-vocab_size = len(tokenizer.word_index) + 1
-
-# Faz com que todas as sequencias (inputs tokenizados), possuam o mesmo tamanho
-max_length = max(len(seq) for seq in sequences)
-padded_sequences = pad_sequences(sequences, maxlen=max_length)
-
-# Codifica os labels
-all_labels = [x for x in range(num_clusters)]
-
-# Mapea cada label a um índice
-label_encoder = {label: idx for idx, label in enumerate(all_labels)}
-
-# Converte os labels para uma representação binário multi-label, para entradas associadas a mais e 1 label
-# É como uma matriz de 0 para ausência do label e 1 para a presença
-
-# Converte os dados de entrada e seus labels para uma matriz que possa ser utilazada pela Machine Learning
-X = tf.constant(padded_sequences)
-
-# Matriz com todas as entradas e seu mapeamento para os labels. Ex: [[0, 0, 1, 1, 0], ..., [1, 0, 0, 1, 0]]
-y = tf.constant(labels)
-
-# Define o modelo (rede neural)
-model = tf.keras.Sequential([
-    tf.keras.layers.Embedding(input_dim=vocab_size, output_dim=len(all_labels), input_length=max_length),
-    tf.keras.layers.LSTM(1),
-    tf.keras.layers.Dense(len(all_labels), activation='sigmoid')
-])
-
-# Compila o modelo
-model.compile(loss='binary_crossentropy', optimizer='adam', metrics=['accuracy'])
-
-# Treina o modelo
-model.fit(X, y, epochs=1, batch_size=1)
-
 # DO de teste
-
 conteudo2 = ""
 for do in os.listdir('./dos_teste'):
     pdf_file = open(f"./dos_teste/{do}", "rb")
@@ -152,7 +110,6 @@ for do in os.listdir('./dos_teste'):
     print(f"lendo {do}")
     # Itera as páginas do PDF
     for page_num in range(len(pdf_reader.pages)):
-        if page_num >= 20: break
         print(f"Página: {page_num}")
 
         # Extrai a página da iteração
@@ -164,26 +121,34 @@ for do in os.listdir('./dos_teste'):
     conteudo2 += unidecode("".join(re.split(r"O\s*DIÁRIO\s*OFICIAL\s*DOS\s*MUNICÍPIOS\s*DO\s*ESTADO\s*DE\s*PERNAMBUCO\s*É\s*UMA\s*SOLUÇÃO\s*VOLTADA\s*À\s*MODERNIZAÇÃO\s*E\s*TRANSPARÊNCIA\s*DA\s*GESTÃO\s*MUNICIPAL.\s*", pdf_content)[1:]))
 
 # A partir do conteúdo, gera uma lista com as publicações, localizadas pelo CÓDIGO IDENTIFICADOR
-publicacoes2 = re.split(r"CODIGO\s*IDENTIFICADOR:\s*[A-Za-z0-9]+", conteudo)[:-1]
+publicacoes2 = re.split(r"CODIGO\s*IDENTIFICADOR:\s*[A-Za-z0-9]+", conteudo2)[:-1]
 
-# Também gera uma lista de mesmo tamanho contendo os códigos de cada publicação na respectiva ordem
-codigos2 = list(map(lambda x:  " ".join(re.split(r"\s+", x)) ,re.findall(r"CODIGO\s*IDENTIFICADOR:\s*[A-Z0-9]+", conteudo)))
+codigos2 = list(map(lambda x:  " ".join(re.split(r"\s+", x)) ,re.findall(r"CODIGO\s*IDENTIFICADOR:\s*[A-Z0-9]+", conteudo2)))
+
+X = X_treino
+y = y_treino
+
+vectorizer = TfidfVectorizer(max_features=5000)
+X_tfidf = vectorizer.fit_transform(X)
+
+random_forest = RandomForestClassifier(n_estimators=100, random_state=42, class_weight='balanced')
+random_forest.fit(X_tfidf, y)
+
+new_data = publicacoes2
+
+new_data_tfidf = vectorizer.transform(new_data)
+
+new_data_pred = random_forest.predict_proba(new_data_tfidf)
 
 
-# Gerar predições
-new_texts = publicacoes
-new_sequences = tokenizer.texts_to_sequences(new_texts)
-new_padded_sequences = pad_sequences(new_sequences, maxlen=max_length)
-predictions = model.predict(tf.constant(new_padded_sequences))
-print(predictions)
+threshold = 0.3
+for i, v in enumerate(new_data_pred):
+    print(f"PublicaçãO: {codigos2[i]}, Clusters: {list(filter(lambda c: new_data_pred[i][c] > threshold, [c for c in range(num_clusters)]))}, Predições: {new_data_pred[i]}")
 
-# Mapeia as predições com os labels
-threshold = 0.48  # Limiar de probabilidade da string pertencer ao tema
-predicted_labels = [[all_labels[i] for i in range(len(all_labels)) if prediction[i] > threshold] for prediction in predictions]
+# new_data_prob = list(map(lambda x: 1 - x[0][0], new_data_pred))
+# print(new_data_pred)
 
-def decode_labels(label_indices):
-    return [idx for idx in label_indices]
+# threshold = 0.3
 
-print("Publicações e seus clusters correspondentes:")
-for i in range(len(new_texts)):
-    print(f'Publicação: "{codigos[i]}", Cluster: {decode_labels(predicted_labels[i])}')
+# for index, value in enumerate(new_data_prob):
+#   print(f"Publicação: {publicacoes2[index]} {index}: {value*100:.2f}%")
