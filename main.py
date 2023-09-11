@@ -1,3 +1,4 @@
+import sys
 from sklearn.feature_extraction.text import TfidfVectorizer
 from sklearn.cluster import KMeans
 import PyPDF2
@@ -7,13 +8,26 @@ import numpy as np
 import os
 from sklearn.feature_extraction.text import TfidfVectorizer
 from sklearn.ensemble import RandomForestClassifier
+import spacy
+import pandas as pd
+
+mode = 'build'
+n = 4
+
+if len(sys.argv) > 1:
+    # build ou start
+    mode = sys.argv[1]
+
+    # Número de clusters
+    n = int(sys.argv[2])
+
+print(f"Modo: {mode}, Número de clusters: {n}")
+
+nlp = spacy.load("pt_core_news_sm")
 
 conteudo = ""
 count = 0
 for do in os.listdir('./dos'):
-    if count == 0:
-        count += 1
-        continue
     pdf_file = open(f"./dos/{do}", "rb")
 
     pdf_reader = PyPDF2.PdfReader(pdf_file)
@@ -43,11 +57,17 @@ codigos = list(map(lambda x:  " ".join(re.split(r"\s+", x)) ,re.findall(r"CODIGO
 data = publicacoes
 
 # Define um número de agrupamentos a serem formados. Não existe valor exato
-num_clusters = 5
+num_clusters = n
 
+print('Analisando publicações e gerando clusters')
 # Vetoriza a lista de textos. Fazendo uma relação de TODAS as palavras com TODOS os textos e dando uma uma "nota"(valor do vetor) para cada texto na dimensão de cada palavra
 vectorizer = TfidfVectorizer()
-X = vectorizer.fit_transform(data)
+# X = vectorizer.fit_transform(data)
+X = []
+for i, publicacao in enumerate(publicacoes):
+    print(f"{i + 1}/{len(publicacoes)} {publicacao[:10]}")
+    embedding = np.mean([token.vector for token in nlp(publicacao)], axis=0)
+    X.append(embedding)
 
 # Agrupa a matriz gerada acima com base nos seu valores
 kmeans = KMeans(n_clusters=num_clusters, random_state=42)
@@ -57,6 +77,9 @@ kmeans.fit(X)
 labels = kmeans.labels_
 
 # Para cada label
+df = pd.DataFrame({'CODIGO': codigos, 'CLUSTER': labels})
+df.to_csv('cluster_results.csv', index=True)
+
 for i, label in enumerate(labels):
     # Imprima o índice da publicação, seu código e o cluster atribuído
     print(f"Publicacao: {i}, {codigos[i]} - Cluster: {label}")
@@ -131,7 +154,7 @@ y = y_treino
 vectorizer = TfidfVectorizer(max_features=5000)
 X_tfidf = vectorizer.fit_transform(X)
 
-random_forest = RandomForestClassifier(n_estimators=100, random_state=42, class_weight='balanced')
+random_forest = RandomForestClassifier(n_estimators=100, random_state=42, class_weight='balanced_subsample')
 random_forest.fit(X_tfidf, y)
 
 new_data = publicacoes2
