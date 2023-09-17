@@ -7,14 +7,13 @@ import numpy as np
 import os
 from sklearn.feature_extraction.text import TfidfVectorizer
 from sklearn.ensemble import RandomForestClassifier
+# import spacy
+
+# nlp = spacy.load("pt_core_news_sm")
 
 conteudo = ""
-count = 0
-for do in os.listdir('./dos'):
-    if count == 0:
-        count += 1
-        continue
-    pdf_file = open(f"./dos/{do}", "rb")
+for do in os.listdir('./dos_treino'):
+    pdf_file = open(f"./dos_treino/{do}", "rb")
 
     pdf_reader = PyPDF2.PdfReader(pdf_file)
 
@@ -22,7 +21,7 @@ for do in os.listdir('./dos'):
     print(f"lendo {do}")
     # Itera as páginas do PDF
     for page_num in range(len(pdf_reader.pages)):
-        print(f"Página: {page_num}")
+        print(f"Página: {page_num}", end="\r")
 
         # Extrai a página da iteração
         page = pdf_reader.pages[page_num]
@@ -31,7 +30,6 @@ for do in os.listdir('./dos'):
         pdf_content += page.extract_text().upper()
 
     conteudo += unidecode("".join(re.split(r"O\s*DIÁRIO\s*OFICIAL\s*DOS\s*MUNICÍPIOS\s*DO\s*ESTADO\s*DE\s*PERNAMBUCO\s*É\s*UMA\s*SOLUÇÃO\s*VOLTADA\s*À\s*MODERNIZAÇÃO\s*E\s*TRANSPARÊNCIA\s*DA\s*GESTÃO\s*MUNICIPAL.\s*", pdf_content)[1:]))
-    count +=1
 
 # A partir do conteúdo, gera uma lista com as publicações, localizadas pelo CÓDIGO IDENTIFICADOR
 publicacoes = re.split(r"CODIGO\s*IDENTIFICADOR:\s*[A-Za-z0-9]+", conteudo)[:-1]
@@ -85,7 +83,7 @@ for cluster_id, indices in cluster_indices.items():
     filtered_keywords = np.array(cluster_nomes)[filtered_indices]
     cluster_termos_frequentes = np.asarray(cluster_X.sum(axis=0)).ravel()
     indices_ordenados = cluster_termos_frequentes.argsort()[::-1]
-    cluster_top_keywords = [cluster_nomes[i] for i in indices_ordenados if cluster_nomes[i] in filtered_keywords][:7]
+    cluster_top_keywords = [cluster_nomes[i] for i in indices_ordenados if cluster_nomes[i] in filtered_keywords][:4]
     cluster_keywords[cluster_id] = cluster_top_keywords
 
 # Imprime as palavras-chave para cada cluster
@@ -99,6 +97,9 @@ X_treino = publicacoes
 y_treino = labels
 labels = list(map(lambda x: [1 if x == i else 0 for i in [n for n in range(num_clusters)]], labels))
 
+
+
+
 # DO de teste
 conteudo2 = ""
 for do in os.listdir('./dos_teste'):
@@ -110,7 +111,7 @@ for do in os.listdir('./dos_teste'):
     print(f"lendo {do}")
     # Itera as páginas do PDF
     for page_num in range(len(pdf_reader.pages)):
-        print(f"Página: {page_num}")
+        print(f"Página: {page_num}", end="\r")
 
         # Extrai a página da iteração
         page = pdf_reader.pages[page_num]
@@ -125,14 +126,14 @@ publicacoes2 = re.split(r"CODIGO\s*IDENTIFICADOR:\s*[A-Za-z0-9]+", conteudo2)[:-
 
 codigos2 = list(map(lambda x:  " ".join(re.split(r"\s+", x)) ,re.findall(r"CODIGO\s*IDENTIFICADOR:\s*[A-Z0-9]+", conteudo2)))
 
-X = X_treino
-y = y_treino
+X_teste = X_treino
+y_teste = y_treino
 
 vectorizer = TfidfVectorizer(max_features=5000)
-X_tfidf = vectorizer.fit_transform(X)
+X_tfidf = vectorizer.fit_transform(X_teste)
 
 random_forest = RandomForestClassifier(n_estimators=100, random_state=42, class_weight='balanced')
-random_forest.fit(X_tfidf, y)
+random_forest.fit(X_tfidf, y_teste)
 
 new_data = publicacoes2
 
@@ -143,4 +144,4 @@ new_data_pred = random_forest.predict_proba(new_data_tfidf)
 
 threshold = 0.3
 for i, v in enumerate(new_data_pred):
-    print(f"PublicaçãO: {codigos2[i]}, Clusters: {list(filter(lambda c: new_data_pred[i][c] > threshold, [c for c in range(num_clusters)]))}, Predições: {new_data_pred[i]}")
+    print(f"{codigos2[i]}, Clusters: {list(filter(lambda c: new_data_pred[i][c] > threshold, [c for c in range(num_clusters)]))}, Predições: {new_data_pred[i]}")
