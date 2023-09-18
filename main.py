@@ -126,12 +126,20 @@ async def main():
         # Treinamento do classificador (random_forest)
         print("#Treinamento: Treinando classificador\n")
 
-        # Define o Y, as saídas, como os rótulos gerados pelo agrupador. 
         # y_treino = list(map(lambda x: [1 if x == i else 0 for i in [n for n in range(num_clusters)]], labels))
+        
+
+        # Dados de entrada de treino do classificador (reutilizando os dados de treino do agrupador, que são as publicações)
+        X_treino = X
+
+        # Dados de saída de treino do classificador (são os agrupamentos gerados para cada publicação)
         y_treino = labels
 
-        X_treino = X
-        random_forest = RandomForestClassifier(n_estimators=100, random_state=42, class_weight='balanced')
+        # Criando a Random Forest
+        # n_estimators - Número de árvores de decisões
+        # random_state - Seed aleatória
+        # class_weight - Peso de cada classe. Como as classes estão desbalanceadas, utilizamos balanced para aumentar o peso das que menos aparecem e diminuir o das que mais aparecem
+        random_forest = RandomForestClassifier(n_estimators=500, random_state=42, class_weight='balanced')
         random_forest.fit(X_treino, y_treino)
 
         # Salva o treinamento da random forest em um arquivo .pkl, para que possa ser utilizado novamente, sem a necessidade de se treinar de novo
