@@ -3,3 +3,4 @@ venv
 *.pdf
 *.csv
 *.pkl
+__pycache__
