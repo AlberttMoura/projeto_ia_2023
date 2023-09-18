@@ -2,3 +2,4 @@ venv
 .venv
 *.pdf
 *.csv
+*.pkl
