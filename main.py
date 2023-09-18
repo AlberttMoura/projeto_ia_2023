@@ -1,14 +1,17 @@
-import sys # Biblioteca nativa para obter argumentos do terminal
-from sklearn.feature_extraction.text import TfidfVectorizer # Biblioteca para vetorização de textos (NLP)
-from sklearn.cluster import KMeans # Biblioteca para agrupamentos dos textos vetorizados
-import re # Biblioteca nativa para utilização de expressões regulares em Python
-import numpy as np # Biblioteca para manipulação de vetores
-from sklearn.ensemble import RandomForestClassifier # Biblioteca para classificação das publicações
-import pickle # Biblioteca nativa para salvar o treinamento
-import asyncio # Biblioteca nativa para executar funções assíncronas
+import sys  # Biblioteca nativa para obter argumentos do terminal
+# Biblioteca para vetorização de textos (NLP)
+from sklearn.feature_extraction.text import TfidfVectorizer
+# Biblioteca para agrupamentos dos textos vetorizados
+from sklearn.cluster import KMeans
+import re  # Biblioteca nativa para utilização de expressões regulares em Python
+import numpy as np  # Biblioteca para manipulação de vetores
+# Biblioteca para classificação das publicações
+from sklearn.ensemble import RandomForestClassifier
+import pickle  # Biblioteca nativa para salvar o treinamento
+import asyncio  # Biblioteca nativa para executar funções assíncronas
 
-import leitura_de_dos # Módulo de manipulação dos DOs
-import nlp # Módulo de processamento de linguagem natural
+import leitura_de_dos  # Módulo de manipulação dos DOs
+import nlp  # Módulo de processamento de linguagem natural
 
 
 async def main():
@@ -22,7 +25,7 @@ async def main():
     threshold = 0.4
 
     # Define o modo de execução default como 'build'
-    mode = 'start' # Pode ser build ou start
+    mode = 'start'  # Pode ser build ou start
 
     # Define o número de clusters default como 4
     num_clusters = 5
@@ -48,21 +51,25 @@ async def main():
 
     # Caso haja não haja treinamento salvo, inicie o treinamento
     if random_forest is None:
-    ##############################################################################################################################
+        ##############################################################################################################################
         # Leitura dos dados
         print("#Leitura: Lendo os diários oficiais em PDF\n")
 
         # Incializa o conteúdo de treino como string vazia
-        conteudo_treino = leitura_de_dos.obter_conteudo_dos_diarios_oficiais("./dos_treino")
+        conteudo_treino = leitura_de_dos.obter_conteudo_dos_diarios_oficiais(
+            "./dos_treino")
     ##############################################################################################################################
         # Pré-processamento dos dados
-        print("#Pré-processamento: Extraindo lista de publicações e códigos identificadores\n")
+        print(
+            "#Pré-processamento: Extraindo lista de publicações e códigos identificadores\n")
 
         # A partir do conteúdo de todos os DOs, gera uma lista com as publicações, localizadas pelo CODIGO IDENTIFICADOR
-        publicacoes_treino = re.split(r"CODIGO\s*IDENTIFICADOR:\s*[A-Za-z0-9]+", conteudo_treino)[:-1]
+        publicacoes_treino = re.split(
+            r"CODIGO\s*IDENTIFICADOR:\s*[A-Za-z0-9]+", conteudo_treino)[:-1]
 
         # Também gera uma lista de mesmo tamanho contendo os códigos de cada publicação na respectiva ordem
-        codigos_treino = list(map(lambda x:  " ".join(re.split(r"\s+", x)) ,re.findall(r"CODIGO\s*IDENTIFICADOR:\s*[A-Z0-9]+", conteudo_treino)))
+        codigos_treino = list(map(lambda x:  " ".join(re.split(
+            r"\s+", x)), re.findall(r"CODIGO\s*IDENTIFICADOR:\s*[A-Z0-9]+", conteudo_treino)))
 
         print('Vetorizando publicações e gerando clusters')
     ##############################################################################################################################
@@ -94,15 +101,16 @@ async def main():
         # Obtém os índices dos documentos em cada cluster
         cluster_indices = {}
         for cluster_id in range(num_clusters):
-            cluster_indices[cluster_id] = [i for i, label in enumerate(labels) if label == cluster_id]
+            cluster_indices[cluster_id] = [
+                i for i, label in enumerate(labels) if label == cluster_id]
 
         # Palavras para não incluir nas palavras chave
         palavras_nao_chave = ["janeiro", "fevereiro", "marco", "abril", "maio", "junho", "julho", "agosto", "setembro", "outubro", "novembro", "dezembro",
-                            "secretaria", "portaria", "municipio", "municipal", "estado", "estadual", "prefeito", "prefeitura", "governo", "vinte", "total", "pernambuco",
-                            "qualquer", "todos", "todas", "tudo", "silva", "publicado", "escada", "pesqueira", "limoeiro", "salgueiro", "publico", "batista",
-                            "barbosa", "michely", "marcela", "maria", "cedro", "paulista", "prefeita", "leite", "quental",
-                            "cabo", "santo", "agostinho", "goiana", "secretario", "paudalho"
-                            ]
+                              "secretaria", "portaria", "municipio", "municipal", "estado", "estadual", "prefeito", "prefeitura", "governo", "vinte", "total", "pernambuco",
+                              "qualquer", "todos", "todas", "tudo", "silva", "publicado", "escada", "pesqueira", "limoeiro", "salgueiro", "publico", "batista",
+                              "barbosa", "michely", "marcela", "maria", "cedro", "paulista", "prefeita", "leite", "quental",
+                              "cabo", "santo", "agostinho", "goiana", "secretario", "paudalho"
+                              ]
 
         # Obtém as palavras mais frequentes em cada cluster
         cluster_keywords = {}
@@ -111,11 +119,14 @@ async def main():
             cluster_vectorizer = TfidfVectorizer(stop_words='english')
             cluster_X = cluster_vectorizer.fit_transform(cluster_documents)
             cluster_nomes = cluster_vectorizer.get_feature_names_out()
-            filtered_indices = (np.vectorize(len)(cluster_nomes) >= 5) & (~np.isin(cluster_nomes, palavras_nao_chave))
+            filtered_indices = (np.vectorize(len)(cluster_nomes) >= 5) & (
+                ~np.isin(cluster_nomes, palavras_nao_chave))
             filtered_keywords = np.array(cluster_nomes)[filtered_indices]
-            cluster_termos_frequentes = np.asarray(cluster_X.sum(axis=0)).ravel()
+            cluster_termos_frequentes = np.asarray(
+                cluster_X.sum(axis=0)).ravel()
             indices_ordenados = cluster_termos_frequentes.argsort()[::-1]
-            cluster_top_keywords = [cluster_nomes[i] for i in indices_ordenados if cluster_nomes[i] in filtered_keywords][:4]
+            cluster_top_keywords = [
+                cluster_nomes[i] for i in indices_ordenados if cluster_nomes[i] in filtered_keywords][:4]
             cluster_keywords[cluster_id] = cluster_top_keywords
 
         # Imprime as palavras-chave para cada cluster
@@ -127,7 +138,6 @@ async def main():
         print("#Treinamento: Treinando classificador\n")
 
         # y_treino = list(map(lambda x: [1 if x == i else 0 for i in [n for n in range(num_clusters)]], labels))
-        
 
         # Dados de entrada de treino do classificador (reutilizando os dados de treino do agrupador, que são as publicações)
         X_treino = X
@@ -139,7 +149,8 @@ async def main():
         # n_estimators - Número de árvores de decisões
         # random_state - Seed aleatória
         # class_weight - Peso de cada classe. Como as classes estão desbalanceadas, utilizamos balanced para aumentar o peso das que menos aparecem e diminuir o das que mais aparecem
-        random_forest = RandomForestClassifier(n_estimators=500, random_state=42, class_weight='balanced')
+        random_forest = RandomForestClassifier(
+            n_estimators=500, random_state=42, class_weight='balanced')
         random_forest.fit(X_treino, y_treino)
 
         # Salva o treinamento da random forest em um arquivo .pkl, para que possa ser utilizado novamente, sem a necessidade de se treinar de novo
@@ -150,16 +161,19 @@ async def main():
     # Leitura dos dados de teste
     print("#Leitura: Lendo diários a serem analisados em PDF\n")
 
-    conteudo_teste = leitura_de_dos.obter_conteudo_dos_diarios_oficiais("./dos_teste")
+    conteudo_teste = leitura_de_dos.obter_conteudo_dos_diarios_oficiais(
+        "./dos_teste")
 
     ##########################################################################################################################
     # Pré-processamento dos dados de teste
     print("#Pré-processamento: Extraindo lista de publicações e códigos identificadores dos dados de teste\n")
 
     # A partir do conteúdo, gera uma lista com as publicações, localizadas pelo CODIGO IDENTIFICADOR
-    publicacoes_teste = re.split(r"CODIGO\s*IDENTIFICADOR:\s*[A-Za-z0-9]+", conteudo_teste)[:-1]
+    publicacoes_teste = re.split(
+        r"CODIGO\s*IDENTIFICADOR:\s*[A-Za-z0-9]+", conteudo_teste)[:-1]
 
-    codigos_teste = list(map(lambda x:  " ".join(re.split(r"\s+", x)) ,re.findall(r"CODIGO\s*IDENTIFICADOR:\s*[A-Z0-9]+", conteudo_teste)))
+    codigos_teste = list(map(lambda x:  " ".join(re.split(
+        r"\s+", x)), re.findall(r"CODIGO\s*IDENTIFICADOR:\s*[A-Z0-9]+", conteudo_teste)))
 
     ###########################################################################################################################
     # Processamento dos dados de teste

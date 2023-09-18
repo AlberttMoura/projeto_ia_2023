@@ -3,6 +3,7 @@ import PyPDF2
 import re
 from unidecode import unidecode
 
+
 def obter_conteudo_dos_diarios_oficiais(path: str) -> str:
     # Leitura dos dados
     print("#Leitura: Lendo os diários oficiais em PDF\n")
@@ -30,6 +31,7 @@ def obter_conteudo_dos_diarios_oficiais(path: str) -> str:
             # Concatena todo o texto da página, em CAPS LOCK, no conteúdo total do PDF
             pdf_content += page.extract_text().upper()
         # Remove o cabeçalho do Diário Oficial lido e adiciona o resto do texto ao counteúdo de todos os diários
-        conteudo_treino += unidecode("".join(re.split(r"O\s*DIÁRIO\s*OFICIAL\s*DOS\s*MUNICÍPIOS\s*DO\s*ESTADO\s*DE\s*PERNAMBUCO\s*É\s*UMA\s*SOLUÇÃO\s*VOLTADA\s*À\s*MODERNIZAÇÃO\s*E\s*TRANSPARÊNCIA\s*DA\s*GESTÃO\s*MUNICIPAL.\s*", pdf_content)[1:]))
+        conteudo_treino += unidecode("".join(re.split(
+            r"O\s*DIÁRIO\s*OFICIAL\s*DOS\s*MUNICÍPIOS\s*DO\s*ESTADO\s*DE\s*PERNAMBUCO\s*É\s*UMA\s*SOLUÇÃO\s*VOLTADA\s*À\s*MODERNIZAÇÃO\s*E\s*TRANSPARÊNCIA\s*DA\s*GESTÃO\s*MUNICIPAL.\s*", pdf_content)[1:]))
         print("\n")
     return conteudo_treino
