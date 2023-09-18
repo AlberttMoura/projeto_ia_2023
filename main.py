@@ -71,7 +71,6 @@ if random_forest is None:
         # Remove o cabeçalho do Diário Oficial lido e adiciona o resto do texto ao counteúdo de todos os diários
         conteudo_treino += ("".join(re.split(r"O\s*DIÁRIO\s*OFICIAL\s*DOS\s*MUNICÍPIOS\s*DO\s*ESTADO\s*DE\s*PERNAMBUCO\s*É\s*UMA\s*SOLUÇÃO\s*VOLTADA\s*À\s*MODERNIZAÇÃO\s*E\s*TRANSPARÊNCIA\s*DA\s*GESTÃO\s*MUNICIPAL.\s*", pdf_content)[1:]))
         print("\n")
-        break
 ##############################################################################################################################
     # Pré-processamento dos dados
     print("#Pré-processamento: Extraindo lista de publicações e códigos identificadores\n")
