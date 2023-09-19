@@ -14,6 +14,6 @@
 
 5. Instale as dependências do projeto com ```pip install -r requirements.txt```
 
-6. Certifique-se de possuir ao menos um diário oficial nos diretório do projeto e alterar no código o nome do arquivo para leitura
+6. Certifique-se de possuir ao menos um diário oficial nos diretórios do projeto e alterar no código o nome do diretórios para leitura. O padrão é ```dos_treino``` para os DOs que serão utilziados para treinamento e ```dos_teste``` para os DOs que serão classificados.
 
 7. Para rodar, execute ```python main.py start``` e o programa deverá fazer uma relação de todas as publicações, com seus códigos e clusters
