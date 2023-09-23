@@ -1,6 +1,5 @@
 venv
 .venv
-*.pdf
 *.csv
 *.pkl
 __pycache__
